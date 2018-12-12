@@ -1,0 +1,41 @@
+---
+exp_name: qm8_gcnfp
+exp_dir: exp/qm8_gcnfp
+runner: QM8Runner
+use_gpu: false
+gpus: [0]
+seed: 1234
+dataset:
+  loader_name: QM8Data
+  name: chemistry
+  data_path: data/QM8/preprocess
+  meta_data_path: data/QM8/QM8_meta.p
+  num_atom: 70
+  num_bond_type: 6  
+model:
+  name: GCNFP 
+  input_dim: 64
+  hidden_dim: [128, 128, 128]
+  output_dim: 16
+  num_layer: 3
+  loss: MSE
+train:
+  optimizer: Adam
+  lr_decay: 0.1
+  lr_decay_steps: [10000]
+  num_workers: 4
+  max_epoch: 200
+  batch_size: 64
+  display_iter: 100
+  snapshot_epoch: 10000
+  valid_epoch: 1
+  lr: 1.0e-4
+  wd: 0.0e-4
+  momentum: 0.9
+  shuffle: true
+  is_resume: false
+  resume_model: None
+test:  
+  batch_size: 64
+  num_workers: 0
+  test_model: exp/qm8_gcnfp/GCNFPChem_chemistry_2018-Sep-22-10-57-35_7511/model_snapshot_best.pth

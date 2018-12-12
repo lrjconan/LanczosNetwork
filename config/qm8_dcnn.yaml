@@ -1,0 +1,44 @@
+---
+exp_name: qm8_dcnn
+exp_dir: exp/qm8_dcnn
+runner: QM8Runner
+use_gpu: false
+gpus: [0]
+seed: 1234
+dataset:
+  loader_name: QM8Data
+  name: chemistry
+  data_path: data/QM8/preprocess
+  meta_data_path: data/QM8/QM8_meta.p
+  num_atom: 70
+  num_bond_type: 6
+model:
+  name: DCNN
+  input_dim: 64
+  diffusion_dist: [3, 5, 7, 10, 20, 30]
+  hidden_dim: [128, 128, 128, 128, 128, 128, 128]
+  output_dim: 16
+  num_layer: 7
+  loss: MSE
+  output_func: MLP  
+train:
+  optimizer: Adam
+  lr_decay: 0.1
+  lr_decay_steps: [10000]
+  num_workers: 4
+  max_epoch: 200
+  batch_size: 64
+  display_iter: 100
+  snapshot_epoch: 10000
+  valid_epoch: 1
+  lr: 1.0e-4
+  wd: 0.0e-4
+  momentum: 0.9
+  shuffle: true
+  is_resume: false
+  resume_model: None
+test:  
+  batch_size: 64
+  num_workers: 0
+  test_model: exp/qm8_dcnn/DCNNChem_chemistry_2018-Sep-20-22-33-08_21116/model_snapshot_best.pth
+ 
