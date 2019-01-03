@@ -5,6 +5,8 @@ runner: QM8Runner
 use_gpu: true
 gpus: [0]
 seed: 1234
+# seed: 5678
+# seed: 9012
 dataset:
   loader_name: QM8Data
   name: chemistry
@@ -14,15 +16,13 @@ dataset:
   num_bond_type: 6  
 model:
   name: AdaLanczosNet
-  short_diffusion_dist: [3, 5, 7]
-  long_diffusion_dist: [10, 20, 30]
+  short_diffusion_dist: [1, 2, 3]
+  long_diffusion_dist: [5, 7, 10, 20, 30]
   num_eig_vec: 20
   use_reorthogonalization: false
-  use_power_iteration_cap: true
-  # spectral_filter_kind: None
+  use_power_iteration_cap: false
   spectral_filter_kind: MLP
-  # input_dim: 64
-  input_dim: 70
+  input_dim: 64
   hidden_dim: [128, 128, 128, 128, 128, 128, 128]
   output_dim: 16
   num_layer: 7
@@ -44,8 +44,9 @@ train:
   shuffle: true
   is_resume: false
   resume_model: None
-test:  
+test:
   batch_size: 64
   num_workers: 0
-  test_model: exp/qm8_ada_lanczos_net/LanczosNetChem_chemistry_2018-Sep-17-23-29-48_32182/model_snapshot_best.pth
- 
+  test_model: exp/qm8_ada_lanczos_net/AdaLanczosNet_chemistry_2018-Dec-28-21-46-34_11666/model_snapshot_best.pth
+  # test_model: exp/qm8_ada_lanczos_net/AdaLanczosNet_chemistry_2018-Dec-30-11-36-25_7857/model_snapshot_best.pth
+  # test_model: exp/qm8_ada_lanczos_net/AdaLanczosNet_chemistry_2018-Dec-30-11-36-48_8366/model_snapshot_best.pth

@@ -97,11 +97,20 @@ class GraphSAGE(nn.Module):
 
   def forward(self, node_feat, nn_idx, nonempty_mask, label=None, mask=None):
     """
-      node_feat: float tensor, shape B X N X D
-      nn_idx: float tensor, shape B X N X K X E
-      nonempty_mask: float tensor, shape B X N X 1
-      label: float tensor, shape B X P
-      mask: float tensor, shape B X N
+      shape parameters:
+        batch size = B
+        embedding dim = D
+        max number of nodes within one mini batch = N
+        neighborhood size = K
+        number of edge types = E
+        number of predicted properties = P
+      
+      Args:
+        node_feat: float tensor, shape B X N X D
+        nn_idx: float tensor, shape B X N X K X E
+        nonempty_mask: float tensor, shape B X N X 1
+        label: float tensor, shape B X P
+        mask: float tensor, shape B X N
     """
     batch_size = node_feat.shape[0]
     num_node = node_feat.shape[1]

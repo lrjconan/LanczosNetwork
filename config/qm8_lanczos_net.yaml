@@ -4,9 +4,9 @@ exp_dir: exp/qm8_lanczos_net
 runner: QM8Runner
 use_gpu: true
 gpus: [0]
-# seed: 1234
+seed: 1234
 # seed: 5678
-seed: 9012
+# seed: 9012
 dataset:
   loader_name: QM8Data
   name: chemistry
@@ -16,11 +16,12 @@ dataset:
   num_bond_type: 6  
 model:
   name: LanczosNet
-  short_diffusion_dist: []
-  long_diffusion_dist: [1, 2, 3, 5, 7, 10, 20, 30]
+  # short_diffusion_dist: []
+  # long_diffusion_dist: [1, 2, 3, 5, 7, 10, 20, 30]
+  short_diffusion_dist: [3, 5, 7]
+  long_diffusion_dist: [10, 20, 30]  
   num_eig_vec: 20
-  spectral_filter_kind: MLP
-  # spectral_filter_kind: None
+  spectral_filter_kind: MLP  
   input_dim: 64
   hidden_dim: [128, 128, 128, 128, 128, 128, 128]
   output_dim: 16
@@ -46,6 +47,6 @@ train:
 test:  
   batch_size: 64
   num_workers: 0
-  # test_model: exp/qm8_lanczos_net/LanczosNetFixBasisChem_chemistry_2018-Oct-02-11-55-54_25460/model_snapshot_best.pth
+  test_model: exp/qm8_lanczos_net/LanczosNetFixBasisChem_chemistry_2018-Oct-02-11-55-54_25460/model_snapshot_best.pth
   # test_model: exp/qm8_lanczos_net/LanczosNetFixBasisChem_chemistry_2018-Oct-02-14-04-53_18123/model_snapshot_best.pth
-  test_model: exp/qm8_lanczos_net/LanczosNetFixBasisChem_chemistry_2018-Oct-02-15-53-14_20776/model_snapshot_best.pth
+  # test_model: exp/qm8_lanczos_net/LanczosNetFixBasisChem_chemistry_2018-Oct-02-15-53-14_20776/model_snapshot_best.pth

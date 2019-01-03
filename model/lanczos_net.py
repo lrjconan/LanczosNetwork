@@ -13,7 +13,6 @@ __all__ = ['LanczosNet']
 class LanczosNet(nn.Module):
 
   def __init__(self, config):
-    # nn.Module.__init__(self)
     super(LanczosNet, self).__init__()
     self.config = config
     self.input_dim = config.model.input_dim
@@ -125,12 +124,21 @@ class LanczosNet(nn.Module):
 
   def forward(self, node_feat, L, D, V, label=None, mask=None):
     """
-      node_feat: long tensor, shape B X N
-      L: float tensor, shape B X N X N X (E + 1)
-      D: float tensor, shape B X K
-      V: float tensor, shape B X N X K
-      label: float tensor, shape B X P
-      mask: float tensor, shape B X N
+      shape parameters:
+        batch size = B
+        embedding dim = D
+        max number of nodes within one mini batch = N
+        number of edge types = E
+        number of predicted properties = P
+        number of approximated eigenvalues, i.e., Ritz values = K
+      
+      Args:
+        node_feat: long tensor, shape B X N
+        L: float tensor, shape B X N X N X (E + 1)
+        D: float tensor, Ritz values, shape B X K
+        V: float tensor, Ritz vectors, shape B X N X K
+        label: float tensor, shape B X P
+        mask: float tensor, shape B X N
     """
     batch_size = node_feat.shape[0]
     num_node = node_feat.shape[1]
@@ -144,7 +152,7 @@ class LanczosNet(nn.Module):
     # Graph Convolution
     ###########################################################################
     state = self.embedding(node_feat)  # shape: B X N X D
-
+    
     # propagation
     for tt in range(self.num_layer):
       msg = []

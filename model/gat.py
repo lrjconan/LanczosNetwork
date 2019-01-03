@@ -1,4 +1,3 @@
-import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -126,14 +125,17 @@ class GAT(nn.Module):
   def forward(self, node_feat, L, label=None, mask=None):
     """
       shape parameters:
-      batch size = B, total number of nodes per mini-batch = N_hat
-      embedding dim = D, hidden dim = H, num edge types = C
-      num property = P
-
-      node_feat: long tensor, shape B X N
-      L: float tensor, shape B X N X N X C
-      label: float tensor, shape B X P
-      mask: float tensor, shape B X N
+        batch size = B
+        embedding dim = D
+        max number of nodes within one mini batch = N
+        number of edge types = E
+        number of predicted properties = P
+      
+      Args:
+        node_feat: long tensor, shape B X N
+        L: float tensor, shape B X N X N X (E + 1)
+        label: float tensor, shape B X P
+        mask: float tensor, shape B X N
     """
     batch_size = node_feat.shape[0]
     num_node = node_feat.shape[1]

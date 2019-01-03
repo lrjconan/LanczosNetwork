@@ -10,9 +10,8 @@ import torch.nn as nn
 import torch.utils.data
 import torch.optim as optim
 import torch.backends.cudnn as cudnn
-from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
-from torchvision import datasets, transforms
+# from torchvision import datasets, transforms
 from tensorboardX import SummaryWriter
 
 from model import *
@@ -108,23 +107,26 @@ class QM8Runner(object):
             data['node_feat'], data['node_mask'], data['label'] = data_to_gpu(
                 data['node_feat'], data['node_mask'], data['label'])
 
-            if self.model_conf.name == 'LanczosNetFixBasisChem':
+            if self.model_conf.name == 'LanczosNet':
               data['L'], data['D'], data['V'] = data_to_gpu(
                   data['L'], data['D'], data['V'])
-            elif self.model_conf.name == 'GraphSAGEChem':
+            elif self.model_conf.name == 'GraphSAGE':
               data['nn_idx'], data['nonempty_mask'] = data_to_gpu(
                   data['nn_idx'], data['nonempty_mask'])
+            elif self.model_conf.name == 'GPNN':
+              data['L'], data['L_cluster'], data['L_cut'] = data_to_gpu(
+                  data['L'], data['L_cluster'], data['L_cut'])
             else:
               data['L'] = data_to_gpu(data['L'])[0]
 
           with torch.no_grad():
-            if self.model_conf.name == 'LanczosNetChem':
+            if self.model_conf.name == 'AdaLanczosNet':
               pred, _ = model(
                   data['node_feat'],
                   data['L'],
                   label=data['label'],
                   mask=data['node_mask'])
-            elif self.model_conf.name == 'LanczosNetFixBasisChem':
+            elif self.model_conf.name == 'LanczosNet':
               pred, _ = model(
                   data['node_feat'],
                   data['L'],
@@ -132,11 +134,19 @@ class QM8Runner(object):
                   data['V'],
                   label=data['label'],
                   mask=data['node_mask'])
-            elif self.model_conf.name == 'GraphSAGEChem':
+            elif self.model_conf.name == 'GraphSAGE':
               pred, _ = model(
                   data['node_feat'],
                   data['nn_idx'],
                   data['nonempty_mask'],
+                  label=data['label'],
+                  mask=data['node_mask'])
+            elif self.model_conf.name == 'GPNN':
+              pred, _ = model(
+                  data['node_feat'],
+                  data['L'],
+                  data['L_cluster'],
+                  data['L_cut'],
                   label=data['label'],
                   mask=data['node_mask'])
             else:
@@ -188,22 +198,25 @@ class QM8Runner(object):
           data['node_feat'], data['node_mask'], data['label'] = data_to_gpu(
               data['node_feat'], data['node_mask'], data['label'])
 
-          if self.model_conf.name == 'LanczosNetFixBasisChem':
+          if self.model_conf.name == 'LanczosNet':
             data['L'], data['D'], data['V'] = data_to_gpu(
                 data['L'], data['D'], data['V'])
-          elif self.model_conf.name == 'GraphSAGEChem':
+          elif self.model_conf.name == 'GraphSAGE':
             data['nn_idx'], data['nonempty_mask'] = data_to_gpu(
                 data['nn_idx'], data['nonempty_mask'])
+          elif self.model_conf.name == 'GPNN':
+            data['L'], data['L_cluster'], data['L_cut'] = data_to_gpu(
+                data['L'], data['L_cluster'], data['L_cut'])
           else:
             data['L'] = data_to_gpu(data['L'])[0]
 
-        if self.model_conf.name == 'LanczosNetChem':
+        if self.model_conf.name == 'AdaLanczosNet':
           _, train_loss = model(
               data['node_feat'],
               data['L'],
               label=data['label'],
               mask=data['node_mask'])
-        elif self.model_conf.name == 'LanczosNetFixBasisChem':
+        elif self.model_conf.name == 'LanczosNet':
           _, train_loss = model(
               data['node_feat'],
               data['L'],
@@ -211,11 +224,19 @@ class QM8Runner(object):
               data['V'],
               label=data['label'],
               mask=data['node_mask'])
-        elif self.model_conf.name == 'GraphSAGEChem':
+        elif self.model_conf.name == 'GraphSAGE':
           _, train_loss = model(
               data['node_feat'],
               data['nn_idx'],
               data['nonempty_mask'],
+              label=data['label'],
+              mask=data['node_mask'])
+        elif self.model_conf.name == 'GPNN':
+          _, train_loss = model(
+              data['node_feat'],
+              data['L'],
+              data['L_cluster'],
+              data['L_cut'],
               label=data['label'],
               mask=data['node_mask'])
         else:
@@ -266,8 +287,7 @@ class QM8Runner(object):
         collate_fn=test_dataset.collate_fn,
         drop_last=False)
 
-    # import pdb; pdb.set_trace()
-    # create models    
+    # create models
     model = eval(self.model_conf.name)(self.config)
     load_model(model, self.test_conf.test_model)
 
@@ -281,22 +301,25 @@ class QM8Runner(object):
         data['node_feat'], data['node_mask'], data['label'] = data_to_gpu(
             data['node_feat'], data['node_mask'], data['label'])
 
-        if self.model_conf.name == 'LanczosNetFixBasisChem':
+        if self.model_conf.name == 'LanczosNet':
           data['D'], data['V'] = data_to_gpu(data['D'], data['V'])
-        elif self.model_conf.name == 'GraphSAGEChem':
+        elif self.model_conf.name == 'GraphSAGE':
           data['nn_idx'], data['nonempty_mask'] = data_to_gpu(
               data['nn_idx'], data['nonempty_mask'])
+        elif self.model_conf.name == 'GPNN':
+          data['L'], data['L_cluster'], data['L_cut'] = data_to_gpu(
+              data['L'], data['L_cluster'], data['L_cut'])
         else:
           data['L'] = data_to_gpu(data['L'])[0]
 
       with torch.no_grad():
-        if self.model_conf.name == 'LanczosNetChem':
+        if self.model_conf.name == 'AdaLanczosNet':
           pred, _ = model(
               data['node_feat'],
               data['L'],
               label=data['label'],
               mask=data['node_mask'])
-        elif self.model_conf.name == 'LanczosNetFixBasisChem':
+        elif self.model_conf.name == 'LanczosNet':
           pred, _ = model(
               data['node_feat'],
               data['L'],
@@ -304,11 +327,19 @@ class QM8Runner(object):
               data['V'],
               label=data['label'],
               mask=data['node_mask'])
-        elif self.model_conf.name == 'GraphSAGEChem':
+        elif self.model_conf.name == 'GraphSAGE':
           pred, _ = model(
               data['node_feat'],
               data['nn_idx'],
               data['nonempty_mask'],
+              label=data['label'],
+              mask=data['node_mask'])
+        elif self.model_conf.name == 'GPNN':
+          pred, _ = model(
+              data['node_feat'],
+              data['L'],
+              data['L_cluster'],
+              data['L_cut'],
               label=data['label'],
               mask=data['node_mask'])
         else:

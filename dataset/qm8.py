@@ -3,6 +3,7 @@ import glob
 import torch
 import pickle
 import numpy as np
+from utils.spectral_graph_partition import *
 
 __all__ = ['QM8Data']
 
@@ -22,7 +23,7 @@ class QM8Data(object):
     if self.use_eigs:
       self.num_eigs = config.model.num_eig_vec
 
-    if self.model_name == 'GraphSAGEChem':
+    if self.model_name == 'GraphSAGE':
       self.num_sample_neighbors = config.model.num_sample_neighbors
 
     self.train_data_files = glob.glob(
@@ -54,6 +55,10 @@ class QM8Data(object):
       return self.num_test
 
   def collate_fn(self, batch):
+    """
+      Collate function for mini-batch
+      N.B.: we pad all samples to the maximum of the mini-batch
+    """
     assert isinstance(batch, list)
 
     data = {}
@@ -84,7 +89,55 @@ class QM8Data(object):
     data['label'] = torch.cat(
         [torch.from_numpy(bb['label']) for bb in batch], dim=0).float()
 
-    if self.model_name == 'GraphSAGEChem':
+    if self.model_name == 'GPNN':
+      #########################################################################
+      # GPNN
+      # N.B.: one can perform graph partition offline to speed up
+      #########################################################################      
+      # graph Laplacian of multi-graph: shape (B, N, N, E)
+      L_multi = np.stack(
+          [
+              np.pad(
+                  bb['L_multi'], ((0, pad_node_size[ii]),
+                                  (0, pad_node_size[ii]), (0, 0)),
+                  'constant',
+                  constant_values=0.0) for ii, bb in enumerate(batch)
+          ],
+          axis=0)
+
+      # graph Laplacian of simple graph: shape (B, N, N, 1)
+      L_simple = np.stack(
+          [
+              np.expand_dims(
+                  np.pad(
+                      bb['L_simple_4'], (0, pad_node_size[ii]),
+                      'constant',
+                      constant_values=0.0),
+                  axis=3) for ii, bb in enumerate(batch)
+          ],
+          axis=0)
+
+      L = np.concatenate([L_simple, L_multi], axis=3)
+      data['L'] = torch.from_numpy(L).float()
+
+      # graph partition
+      L_cluster, L_cut = [], []
+
+      for ii in range(batch_size):
+        node_label = spectral_clustering(L_simple[ii, :, :, 0], self.config.model.num_partition)
+        
+        # Laplacian of clusters and cut
+        L_cluster_tmp, L_cut_tmp = get_L_cluster_cut(L_simple[ii, :, :, 0], node_label)
+
+        L_cluster += [L_cluster_tmp]
+        L_cut += [L_cut_tmp]
+
+      data['L_cluster'] = torch.from_numpy(np.stack(L_cluster, axis=0)).float()
+      data['L_cut'] = torch.from_numpy(np.stack(L_cut, axis=0)).float()
+    elif self.model_name == 'GraphSAGE':
+      #########################################################################
+      # GraphSAGE
+      #########################################################################
       # N.B.: adjacency mat of GraphSAGE is asymmetric
       nonempty_mask = np.zeros((batch_size, batch_node_size, 1))
       nn_idx = np.zeros((batch_size, batch_node_size, self.num_sample_neighbors,
@@ -111,8 +164,11 @@ class QM8Data(object):
 
       data['nn_idx'] = torch.from_numpy(nn_idx).long()
       data['nonempty_mask'] = torch.from_numpy(nonempty_mask).float()
-    elif self.model_name == 'GATChem':
-      # graph Laplacian of multi-graph: shape (B, N, N, C)
+    elif self.model_name == 'GAT':
+      #########################################################################
+      # GAT
+      #########################################################################
+      # graph Laplacian of multi-graph: shape (B, N, N, E)
       L_multi = np.stack(
           [
               np.pad(
@@ -123,6 +179,7 @@ class QM8Data(object):
           ],
           axis=0)
 
+      # graph Laplacian of simple graph: shape (B, N, N, 1)
       L_simple = np.stack(
           [
               np.expand_dims(
@@ -161,7 +218,10 @@ class QM8Data(object):
 
       data['L'] = torch.from_numpy(np.stack(L_new, axis=0)).float()
     else:
-      # graph Laplacian of multi-graph: shape (B, N, N, C)
+      #########################################################################
+      # All other models
+      #########################################################################      
+      # graph Laplacian of multi-graph: shape (B, N, N, E)
       L_multi = torch.stack([
           torch.from_numpy(
               np.pad(
@@ -173,12 +233,12 @@ class QM8Data(object):
 
       # graph Laplacian of simple graph: shape (B, N, N, 1)
       L_simple_key = 'L_simple_4'
-      if self.model_name == 'DCNNChem':
+      if self.model_name == 'DCNN':
         L_simple_key = 'L_simple_7'
-      elif self.model_name in ['ChebyNetChem']:
+      elif self.model_name in ['ChebyNet']:
         L_simple_key = 'L_simple_6'
 
-      if self.model_name == 'ChebyNetChem':
+      if self.model_name == 'ChebyNet':
         L_simple = torch.stack([
             torch.from_numpy(
                 np.expand_dims(

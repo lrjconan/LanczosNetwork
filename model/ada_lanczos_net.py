@@ -14,7 +14,7 @@ class AdaLanczosNet(nn.Module):
   def __init__(self, config):
     super(AdaLanczosNet, self).__init__()
     self.config = config
-    self.input_dim = config.model.input_dim
+    self.input_dim = config.model.input_dim    
     self.hidden_dim = config.model.hidden_dim
     self.output_dim = config.model.output_dim
     self.num_layer = config.model.num_layer
@@ -37,6 +37,8 @@ class AdaLanczosNet(nn.Module):
     self.use_power_iteration_cap = config.model.use_power_iteration_cap if hasattr(
         config, 'use_power_iteration_cap') else True
 
+    self.input_dim = self.num_atom
+
     dim_list = [self.input_dim] + self.hidden_dim + [self.output_dim]
     self.filter = nn.ModuleList([
         nn.Linear(dim_list[tt] * (
@@ -44,28 +46,21 @@ class AdaLanczosNet(nn.Module):
                   dim_list[tt + 1]) for tt in range(self.num_layer)
     ] + [nn.Linear(dim_list[-2], dim_list[-1])])
 
-    # self.embedding = nn.Embedding(self.num_atom, self.input_dim)
-
-    self.embedding = nn.Embedding(self.num_atom, self.num_atom)
-    self.embedding.weight.requires_grad = False
-    self.embedding.weight.data = torch.eye(self.num_atom)
-    if self.config.use_gpu:
-      self.embedding.weight.data = self.embedding.weight.data.cuda()
-
-    self.embedding_map = nn.Sequential(*[
-        nn.Linear(self.num_atom, 1024),
-        nn.ReLU(),
-        nn.Linear(1024, self.num_atom)
-    ])
+    self.embedding = nn.Embedding(self.num_atom, self.input_dim)
 
     # spectral filters
     if self.spectral_filter_kind == 'MLP' and self.num_scale_long > 0:
-      self.eigen_map = nn.ModuleList([
+      # N.B.: one can modify the filter size based on GPU memory consumption
+      self.spectral_filter = nn.ModuleList([
           nn.Sequential(*[
-              nn.Linear(self.num_eig_vec * self.num_eig_vec, 1024),
+              nn.Linear(self.num_eig_vec * self.num_eig_vec * self.num_scale_long, 4096),
               nn.ReLU(),
-              nn.Linear(1024, self.num_eig_vec * self.num_eig_vec)
-          ]) for _ in range(self.num_scale_long)
+              nn.Linear(4096, 4096),
+              nn.ReLU(),
+              nn.Linear(4096, 4096),              
+              nn.ReLU(),              
+              nn.Linear(4096, self.num_eig_vec * self.num_eig_vec * self.num_scale_long)
+          ]) for _ in range(self.num_layer)
       ])
 
     # attention
@@ -95,14 +90,8 @@ class AdaLanczosNet(nn.Module):
         if ff.bias is not None:
           ff.bias.data.zero_()
 
-    for ff in self.eigen_map:
-      if isinstance(ff, nn.Linear):
-        nn.init.xavier_uniform_(ff.weight.data)
-        if ff.bias is not None:
-          ff.bias.data.zero_()
-
     if self.spectral_filter_kind == 'MLP' and self.num_scale_long > 0:
-      for f in self.eigen_map:
+      for f in self.spectral_filter:
         for ff in f:
           if isinstance(ff, nn.Linear):
             nn.init.xavier_uniform_(ff.weight.data)
@@ -125,46 +114,31 @@ class AdaLanczosNet(nn.Module):
 
     # compute pairwise distance
     idx_row, idx_col = np.meshgrid(range(num_node), range(num_node))
-    idx_row, idx_col = torch.Tensor(idx_row.reshape(-1)).long(), torch.Tensor(
-        idx_col.reshape(-1)).long()
+    idx_row, idx_col = torch.Tensor(idx_row.reshape(-1)).long().to(node_feat.device), torch.Tensor(
+        idx_col.reshape(-1)).long().to(node_feat.device)
 
-    if node_feat.is_cuda:
-      idx_row, idx_col = idx_row.cuda(), idx_col.cuda()
-
-    diff = node_feat[:, idx_row, :] - node_feat[:,
-                                                idx_col, :]  # shape B X N^2 X D
+    diff = node_feat[:, idx_row, :] - node_feat[:, idx_col, :]  # shape B X N^2 X D
     dist2 = (diff * diff).sum(dim=2)  # shape B X N^2
+    
     # sigma2, _ = torch.median(dist2, dim=1, keepdim=True) # median is sometimes 0
+    # sigma2 = sigma2 + 1.0e-7
 
     sigma2 = torch.mean(dist2, dim=1, keepdim=True)
+
     A = torch.exp(-dist2 / sigma2)  # shape B X N^2
     A = A.reshape(batch_size, num_node, num_node) * adj_mask  # shape B X N X N
     row_sum = torch.sum(A, dim=2, keepdim=True)
     pad_row_sum = torch.zeros_like(row_sum)
-    pad_row_sum[row_sum == 0.0] = 1.0
-    # alpha = 0.25
+    pad_row_sum[row_sum == 0.0] = 1.0    
     alpha = 0.5
     D = 1.0 / (row_sum + pad_row_sum).pow(alpha)  # shape B X N X 1
     L = D * A * D.transpose(1, 2)  # shape B X N X N
-
-    # re-normalize for diffusion map
-    # row_sum = torch.sum(L, dim=2, keepdim=True)
-    # pad_row_sum = torch.zeros_like(row_sum)
-    # pad_row_sum[row_sum == 0.0] = 1.0
-    # D = 1.0 / (row_sum + pad_row_sum).sqrt()  # shape B X N X 1
-    # L = D * L * D.transpose(1, 2)  # shape B X N X N
 
     return L
 
   def _lanczos_layer(self, A, mask=None):
     """ Lanczos layer for symmetric matrix A
-
-    N.B.: currently we note some issues with the post-SVD when A has
-      multiple similar eigenvalues
-
-      For the mini-batch version of Lanczos, we need to intialize
-      Lanczos vectors based on the individual rank of each A
-
+    
       Args:
         A: float tensor, shape B X N X N
         mask: float tensor, shape B X N
@@ -182,12 +156,9 @@ class AdaLanczosNet(nn.Module):
     beta = [None] * (lanczos_iter + 1)
     Q = [None] * (lanczos_iter + 2)
 
-    beta[0] = torch.zeros(batch_size, 1, 1)
-    Q[0] = torch.zeros(batch_size, num_node, 1)
-    Q[1] = torch.randn(batch_size, num_node, 1)
-
-    if A.is_cuda:
-      Q[0], Q[1], beta[0] = Q[0].cuda(), Q[1].cuda(), beta[0].cuda()
+    beta[0] = torch.zeros(batch_size, 1, 1).to(A.device)
+    Q[0] = torch.zeros(batch_size, num_node, 1).to(A.device)
+    Q[1] = torch.randn(batch_size, num_node, 1).to(A.device)
 
     if mask is not None:
       mask = mask.unsqueeze(dim=2).float()
@@ -204,7 +175,7 @@ class AdaLanczosNet(nn.Module):
       z = z - alpha[ii] * Q[ii] - beta[ii - 1] * Q[ii - 1]  # shape B X N X 1
 
       if self.use_reorthogonalization and ii > 1:
-        # N.B.: we notice gram schmidt causes instability
+        # N.B.: Gram Schmidt does not bring significant difference of performance
         def _gram_schmidt(xx, tt):
           # xx shape B X N X 1
           for jj in range(1, tt):
@@ -213,7 +184,7 @@ class AdaLanczosNet(nn.Module):
                     torch.sum(Q[jj] * Q[jj], dim=1, keepdim=True) + EPS) * Q[jj]
           return xx
 
-        # we do Gram Schmidt process twice
+        # do Gram Schmidt process twice
         for _ in range(2):
           z = _gram_schmidt(z, ii)
 
@@ -275,12 +246,14 @@ class AdaLanczosNet(nn.Module):
 
     return T, Q
 
-  def _get_spectral_filters(self, T, Q):
+
+  def _get_spectral_filters(self, T, Q, layer_idx):
     """ Construct Spectral Filters based on Lanczos Outputs
 
       Args:
-        T: shape B X K X K
-        Q: shape B X N X K
+        T: shape B X K X K, tridiagonal matrix
+        Q: shape B X N X K, orthonormal matrix
+        layer_idx: int, index of layer
 
       Returns:
         L: shape B X N X N X num_scale
@@ -290,81 +263,38 @@ class AdaLanczosNet(nn.Module):
     T_list = []
     TT = T
 
-    b = torch.randn(T.shape[0], T.shape[1], 1)
-    if T.is_cuda:
-      b = b.cuda()
-    Tb = b / torch.norm(b, 2, dim=1, keepdim=True)  # shape B X K X 1
-
-    l_max_tol = 1.0
-    # N.B.: while computing the matrix power, we can also run a power-iteration
-    # to estimate largest eigenvalue of tri-diagonal matrix T
-    for ii in range(self.max_long_diffusion_dist + 1):
+    for ii in range(1, self.max_long_diffusion_dist + 1):
       if ii in self.long_diffusion_dist:
         T_list += [TT]
 
       TT = torch.bmm(TT, T)  # shape B X K X K
 
-      if self.use_power_iteration_cap:
-        Tb_new = torch.bmm(T, Tb)  # shape B X K X 1
-        l_max = torch.sum(
-            Tb_new * Tb, dim=1, keepdim=True) / (
-                torch.sum(Tb * Tb, dim=1, keepdim=True) + EPS)
-        l_mask = (l_max.abs() <= l_max_tol).float()
-        TT = TT * l_mask
-        Tb = Tb_new / (torch.norm(Tb_new, 2, dim=1, keepdim=True) + EPS
-                      )  # shape B X K X 1
-
     # spectral filter
-    triu_mask = torch.triu(torch.ones_like(T[0]))  # shape K X K
-    diag_mask = torch.diag(torch.diag(torch.ones_like(T[0])))  # shape K X K
-    triu_mask = triu_mask.unsqueeze(0).repeat(T.shape[0], 1,
-                                              1)  # shape B X K X K
-    diag_mask = diag_mask.unsqueeze(0).repeat(T.shape[0], 1,
-                                              1)  # shape B X K X K
+    if self.spectral_filter_kind == 'MLP':
+      DD = self.spectral_filter[layer_idx](torch.cat(T_list, dim=2).view(T.shape[0], -1))
+      DD = DD.view(T.shape[0], T.shape[1], T.shape[2], self.num_scale_long) # shape: B X K X K X C
 
-    for ii in range(self.num_scale_long):
-      if self.spectral_filter_kind == 'MLP':
-        DD = self.eigen_map[ii](T_list[ii].view(T.shape[0], -1)).view(
-            T.shape[0], T.shape[1], T.shape[2])  # shape: B X K X K
+      # construct symmetric output
+      DD = (DD + DD.transpose(1, 2)) * 0.5
 
-        # construct symmetric output
-        triu_DD = DD * triu_mask
-        diag_DD = DD * diag_mask
-        DD = triu_DD + triu_DD.transpose(1, 2) - diag_DD
-
-        # make DD PSD
-        # DD = torch.bmm(DD, DD.transpose(1, 2))
-      else:
-        DD = T_list[ii]
-
-      L += [Q.bmm(DD).bmm(Q.transpose(1, 2))]
-
-    # if self.spectral_filter_kind == 'MLP':
-    #   triu_mask = torch.triu(torch.ones_like(T[0])) # shape K X K
-    #   diag_mask = torch.diag(torch.diag(torch.ones_like(T[0]))) # shape K X K
-    #   triu_mask = triu_mask.unsqueeze(0).repeat(T.shape[0], 1, 1) # shape B X K X K
-    #   diag_mask = diag_mask.unsqueeze(0).repeat(T.shape[0], 1, 1) # shape B X K X K
-    #   TTT = torch.stack(T_list, dim=3).view(T.shape[0]*T.shape[1], -1) # shape BK X KD
-    #   TTT = self.eigen_map(TTT).view(T.shape[0], T.shape[1], T.shape[2], -1) # shape B X K X K X D
-
-    #   for ii in range(self.num_scale_long):
-    #     # construct symmetric output
-    #     triu_DD = TTT[:,:,:,ii] * triu_mask
-    #     diag_DD = TTT[:,:,:,ii] * diag_mask
-    #     DD = triu_DD + triu_DD.transpose(1,2) - diag_DD
-
-    #     # make DD PSD
-    #     # DD = torch.bmm(DD, DD.transpose(1, 2))
-
-    #     L += [Q.bmm(DD).bmm(Q.transpose(1, 2))]
-    # else:
-    #   for ii in range(self.num_scale_long):
-    #     L += [Q.bmm(T_list[ii]).bmm(Q.transpose(1, 2))]
-
+      for ii in range(self.num_scale_long):
+        L += [Q.bmm(DD[:,:,:,ii]).bmm(Q.transpose(1, 2))]
+    else:
+      for ii in range(self.num_scale_long):
+        L += [Q.bmm(T_list[ii]).bmm(Q.transpose(1, 2))]  
+    
     return torch.stack(L, dim=3)
+
 
   def forward(self, node_feat, L, label=None, mask=None):
     """
+      shape parameters:
+        batch size = B
+        embedding dim = D
+        max number of nodes within one mini batch = N
+        number of edge types = E
+        number of predicted properties = P
+      
       Args:
         node_feat: long tensor, shape B X N
         L: float tensor, shape B X N X N X (E + 1)
@@ -373,36 +303,32 @@ class AdaLanczosNet(nn.Module):
     """
     batch_size = node_feat.shape[0]
     num_node = node_feat.shape[1]
-    input_state = self.embedding(node_feat)  # shape: B X N X D
-    # graph_state = self.graph_embedding(node_feat)
-
-    input_state = self.embedding_map(input_state)
-    graph_state = input_state
-
+    state = self.embedding(node_feat)  # shape: B X N X D
+    
     if self.num_scale_long > 0:
       # compute graph Laplacian for simple graph
-      adj = torch.zeros_like(L[:, :, :, 0])  # get L of simple graph
+      adj = torch.zeros_like(L[:, :, :, 0])  # get L of the simple graph
       adj[L[:, :, :, 0] != 0.0] = 1.0
-      Le = self._get_graph_laplacian(graph_state, adj)
-
+      Le = self._get_graph_laplacian(state, adj)
+      
       # Lanczos Iteration
       T, Q = self._lanczos_layer(Le, mask)
-      Lf = self._get_spectral_filters(T, Q)
 
     ###########################################################################
     # Graph Convolution
     ###########################################################################
-    # propagation
-    state = input_state
+    # propagation    
     for tt in range(self.num_layer):
       msg = []
+
+      if self.num_scale_long > 0:
+        Lf = self._get_spectral_filters(T, Q, tt)
 
       # short diffusion
       if self.num_scale_short > 0:
         tmp_state = state
         for ii in range(1, self.max_short_diffusion_dist + 1):
           tmp_state = torch.bmm(L[:, :, :, 0], tmp_state)
-          # tmp_state = torch.bmm(Le, tmp_state)
           if ii in self.short_diffusion_dist:
             msg += [tmp_state]
 

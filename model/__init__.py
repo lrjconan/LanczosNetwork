@@ -1,5 +1,6 @@
 from model.set2set import *
 from model.ggnn import *
+from model.gpnn import *
 from model.gcn import *
 from model.gat import *
 from model.dcnn import *

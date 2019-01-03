@@ -108,6 +108,20 @@ class MPNN(nn.Module):
         m.bias_ih.data.zero_()
 
   def forward(self, node_feat, L, label=None, mask=None):
+    """
+      shape parameters:
+        batch size = B
+        embedding dim = D
+        max number of nodes within one mini batch = N
+        number of edge types = E
+        number of predicted properties = P
+      
+      Args:
+        node_feat: long tensor, shape B X N
+        L: float tensor, shape B X N X N X (E + 1)
+        label: float tensor, shape B X P
+        mask: float tensor, shape B X N
+    """    
     L[L != 0] = 1.0
     batch_size = node_feat.shape[0]
     num_node = node_feat.shape[1]
@@ -125,9 +139,7 @@ class MPNN(nn.Module):
       msg = []
       for ii in range(self.num_edgetype + 1):
         if self.msg_func_name == 'embedding':
-          idx_edgetype = torch.Tensor([ii]).long()
-          if node_feat.is_cuda:
-            idx_edgetype = idx_edgetype.cuda()
+          idx_edgetype = torch.Tensor([ii]).long().to(node_feat.device)
           edge_em = self.edge_embedding(idx_edgetype).view(state_dim, state_dim)
           node_state = state_old.view(batch_size * num_node,
                                       -1)  # shape: BN X D

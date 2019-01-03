@@ -52,7 +52,7 @@ class Set2SetLSTM(nn.Module):
     ct = self.memory_gate(hidden)
 
     memory = ft * memory + it * ct
-    hidden = ot * F.tanh(memory)
+    hidden = ot * torch.tanh(memory)
 
     return hidden, memory
 
@@ -87,15 +87,12 @@ class Set2Vec(nn.Module):
     num_element = input_set.shape[0]
     element_dim = input_set.shape[1]
     assert element_dim == self.element_dim
-    hidden = torch.zeros(1, 2 * self.element_dim)
-    memory = torch.zeros(1, self.element_dim)
-
-    if input_set.is_cuda:
-      hidden, memory = hidden.cuda(), memory.cuda()
+    hidden = torch.zeros(1, 2 * self.element_dim).to(input_set.device)
+    memory = torch.zeros(1, self.element_dim).to(input_set.device)
 
     for tt in range(self.num_step_encoder):
       hidden, memory = self.LSTM(hidden, memory)
-      energy = F.tanh(torch.mm(hidden, self.W_1) + input_set).mm(self.W_2)
+      energy = torch.tanh(torch.mm(hidden, self.W_1) + input_set).mm(self.W_2)
       att_weight = F.softmax(energy, dim=0)
       read = (input_set * att_weight).sum(dim=0, keepdim=True)
       hidden = torch.cat([hidden, read], dim=1)
@@ -146,16 +143,13 @@ class Set2Set(nn.Module):
     num_element = input_set.shape[0]
     element_dim = input_set.shape[1]
     assert element_dim == self.element_dim
-    hidden = torch.zeros(1, 2 * self.element_dim)
-    memory = torch.zeros(1, self.element_dim)
-
-    if input_set.is_cuda:
-      hidden, memory = hidden.cuda(), memory.cuda()
+    hidden = torch.zeros(1, 2 * self.element_dim).to(input_set.device)
+    memory = torch.zeros(1, self.element_dim).to(input_set.device)
 
     # encoding
     for tt in range(self.num_step_encoder):
       hidden, memory = self.LSTM_encoder(hidden, memory)
-      energy = F.tanh(torch.mm(hidden, self.W_1) + input_set).mm(self.W_2)
+      energy = torch.tanh(torch.mm(hidden, self.W_1) + input_set).mm(self.W_2)
       att_weight = F.softmax(energy, dim=0)
       read = (input_set * att_weight).sum(dim=0, keepdim=True)
       hidden = torch.cat([hidden, read], dim=1)
@@ -165,11 +159,11 @@ class Set2Set(nn.Module):
     output_set = []
     for tt in range(num_element):
       hidden, memory = self.LSTM_decoder(hidden, memory)
-      energy = F.tanh(torch.mm(hidden, self.W_3) + input_set).mm(self.W_4)
+      energy = torch.tanh(torch.mm(hidden, self.W_3) + input_set).mm(self.W_4)
       att_weight = F.softmax(energy, dim=0)
       read = (input_set * att_weight).sum(dim=0, keepdim=True)
       hidden = torch.cat([hidden, read], dim=1)
-      energy = F.tanh(torch.mm(read, self.W_5) + torch.mm(
+      energy = torch.tanh(torch.mm(read, self.W_5) + torch.mm(
           input_set, self.W_6)).mm(self.W_7)
       output_set += [torch.argmax(energy)]
 
