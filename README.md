@@ -12,7 +12,7 @@ This is the PyTorch implementation of [Lanczos Network](https://openreview.net/p
 
 We also provide our own implementation of 9 recent graph neural networks on the [QM8](https://arxiv.org/pdf/1504.01966.pdf) benchmark: 
 
-* [graph convolution networks for fingerprint](https://papers.nips.cc/paper/5954-convolutional-networks-on-graphs-for-learning-molecular-fingerprints.pdf) (GCNFP)
+* [graph convolution networks for fingerprint](https://papers.nips.cc/paper/5954-convolutional-networks-on-graphs-for-learning-molecular-fingerprints.pdf) (GCN-FP)
 * [gated graph neural networks](https://arxiv.org/pdf/1511.05493.pdf) (GGNN)
 * [diffusion convolutional neural networks](https://arxiv.org/pdf/1511.02136.pdf) (DCNN) 
 * [Chebyshev networks](https://papers.nips.cc/paper/6081-convolutional-neural-networks-on-graphs-with-fast-localized-spectral-filtering.pdf) (ChebyNet)
@@ -35,7 +35,7 @@ You should be able to reproduce the following results of weighted mean absolute 
 | GraphSAGE     | 13.19 +- 0.04  | 12.95 +- 0.11 |
 | GPNN          | 12.81 +- 0.80  | 12.39 +- 0.77 |
 | GAT           | 11.39 +- 0.09  | 11.02 +- 0.06 |
-| LanczosNet    |  9.65 +- 0.19  |  9.58 +- 0.14 |
+| LanczosNet    |  **9.65** +- 0.19  |  **9.58** +- 0.14 |
 | AdaLanczosNet | 10.10 +- 0.22  |  9.97 +- 0.20 |
 
 **Note**:
