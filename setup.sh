@@ -1,7 +1,7 @@
 #!/bin/bash
 
-curl -O data/qm8.zip http://www.cs.toronto.edu/~rjliao/data/qm8.zip
-unzip data/qm8.zip -d data/QM8
+wget http://www.cs.toronto.edu/~rjliao/data/qm8.zip -P data
+unzip data/qm8.zip -d data/
 
 cd operators
 python build_segment_reduction.py build_ext --inplace

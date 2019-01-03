@@ -10,7 +10,8 @@ def setup_logging(log_level, log_file, logger_name="exp_logger"):
   logging.basicConfig(
       filename=log_file,
       filemode="w",
-      format="%(levelname)-5s | %(asctime)s | File %(filename)-20s | Line %(lineno)-5d | %(message)s",
+      format=
+      "%(levelname)-5s | %(asctime)s | File %(filename)-20s | Line %(lineno)-5d | %(message)s",
       datefmt="%m/%d/%Y %I:%M:%S %p",
       level=numeric_level)
 
