@@ -2,7 +2,7 @@
 exp_name: qm8_dcnn
 exp_dir: exp/qm8_dcnn
 runner: QM8Runner
-use_gpu: false
+use_gpu: true
 gpus: [0]
 seed: 1234
 dataset:
@@ -37,8 +37,7 @@ train:
   shuffle: true
   is_resume: false
   resume_model: None
-test:  
+test:
   batch_size: 64
   num_workers: 0
-  test_model: exp/qm8_dcnn/DCNNChem_chemistry_2018-Sep-20-22-33-08_21116/model_snapshot_best.pth
- 
+  test_model: 

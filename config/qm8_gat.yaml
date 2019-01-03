@@ -4,9 +4,7 @@ exp_dir: exp/qm8_gat
 runner: QM8Runner
 use_gpu: true
 gpus: [0]
-# seed: 1234
-# seed: 5678
-seed: 9012
+seed: 1234
 dataset:
   loader_name: QM8Data
   name: chemistry
@@ -42,6 +40,4 @@ train:
 test:  
   batch_size: 64
   num_workers: 0
-  # test_model: exp/qm8_gat/GATChem_chemistry_2018-Sep-26-16-28-53_5748/model_snapshot_best.pth
-  # test_model: exp/qm8_gat/GATChem_chemistry_2018-Sep-30-17-47-57_21569/model_snapshot_best.pth
-  test_model: exp/qm8_gat/GATChem_chemistry_2018-Oct-01-15-03-58_5262/model_snapshot_best.pth
+  test_model: 

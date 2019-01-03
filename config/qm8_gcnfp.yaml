@@ -2,7 +2,7 @@
 exp_name: qm8_gcnfp
 exp_dir: exp/qm8_gcnfp
 runner: QM8Runner
-use_gpu: false
+use_gpu: true
 gpus: [0]
 seed: 1234
 dataset:
@@ -38,4 +38,4 @@ train:
 test:  
   batch_size: 64
   num_workers: 0
-  test_model: exp/qm8_gcnfp/GCNFPChem_chemistry_2018-Sep-22-10-57-35_7511/model_snapshot_best.pth
+  test_model: 

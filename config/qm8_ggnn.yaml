@@ -4,9 +4,7 @@ exp_dir: exp/qm8_ggnn
 runner: QM8Runner
 use_gpu: true
 gpus: [0]
-# seed: 1234
-# seed: 5678
-seed: 9012
+seed: 1234
 dataset:
   loader_name: QM8Data
   name: chemistry
@@ -44,6 +42,4 @@ train:
 test:  
   batch_size: 64
   num_workers: 0
-  # test_model: exp/qm8_ggnn/GGNNChem_chemistry_2018-Sep-21-20-14-02_16607/model_snapshot_best.pth
-  # test_model: exp/qm8_ggnn/GGNNChem_chemistry_2018-Sep-27-17-58-19_26297/model_snapshot_best.pth
-  test_model: exp/qm8_ggnn/GGNNChem_chemistry_2018-Sep-27-21-28-43_26955/model_snapshot_best.pth
+  test_model: 

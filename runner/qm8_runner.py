@@ -9,9 +9,7 @@ import torch
 import torch.nn as nn
 import torch.utils.data
 import torch.optim as optim
-import torch.backends.cudnn as cudnn
 from torch.utils.data import Dataset, DataLoader
-# from torchvision import datasets, transforms
 from tensorboardX import SummaryWriter
 
 from model import *
@@ -20,7 +18,6 @@ from utils.logger import get_logger
 from utils.train_helper import data_to_gpu, snapshot, load_model, EarlyStopper
 
 logger = get_logger('exp_logger')
-
 __all__ = ['QM8Runner']
 
 

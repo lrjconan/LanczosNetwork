@@ -31,19 +31,20 @@ To set up experiments, we need to download the [preprocessed QM8 data](http://ww
 ```
 
 **Note**:
-We also provide the script ```dataset/get_qm8_data.py``` to preprocess the [raw QM8](http://quantum-machine.org/datasets/) data which requires the installation of [DeepChem](https://github.com/deepchem/deepchem). 
+
+* We also provide the script ```dataset/get_qm8_data.py``` to preprocess the [raw QM8](http://quantum-machine.org/datasets/) data which requires the installation of [DeepChem](https://github.com/deepchem/deepchem). 
 It will produce a different train/dev/test split than what we used in the paper due to the randomness of DeepChem.
 Therefore, we suggest using our preprocessed data for a fair comparison.
 
 
 ## Dependencies
-Python 3, PyTorch(1.0), scipy, sklearn
+Python 3, PyTorch(1.0), numpy, scipy, sklearn
 
 
 ## Run Demos
 
 ### Train
-* To run the training of experiment ```X``` where ```X``` is one of {```qm8_lanczos_net```, ```qm8_ada_lanczos_net```, ```qm8_cheby_net```, ...}:
+* To run the training of experiment ```X``` where ```X``` is one of {```qm8_lanczos_net```, ```qm8_ada_lanczos_net```, ...}:
 
   ```python run_exp.py -c config/X.yaml```
   
@@ -57,7 +58,7 @@ Python 3, PyTorch(1.0), scipy, sklearn
 
 * After training, you can specify the ```test_model``` field of the configuration yaml file with the path of your best model snapshot, e.g.,
 
-  ```test_model: exp/qm8_lanczos_net/LanczosNetFixBasisChem_chemistry_2018-Oct-02-11-55-54_25460/model_snapshot_best.pth```	
+  ```test_model: exp/qm8_lanczos_net/LanczosNet_chemistry_2018-Oct-02-11-55-54_25460/model_snapshot_best.pth```	
 
 * To run the test of experiments ```X```:
 

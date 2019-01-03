@@ -7,7 +7,7 @@ def data_to_gpu(*input_data):
   for dd in input_data:
     if type(dd).__name__ == 'Tensor':
       return_data += [dd.cuda()]
-  
+
   return tuple(return_data)
 
 
@@ -18,10 +18,11 @@ def snapshot(model, optimizer, config, step, gpus=[0], tag=None):
       "step": step
   }
 
-  torch.save(model_snapshot,
-             os.path.join(config.save_dir, "model_snapshot_{}.pth".format(tag)
-                          if tag is not None else
-                          "model_snapshot_{:07d}.pth".format(step)))
+  torch.save(
+      model_snapshot,
+      os.path.join(
+          config.save_dir, "model_snapshot_{}.pth".format(tag)
+          if tag is not None else "model_snapshot_{:07d}.pth".format(step)))
 
 
 def load_model(model, file_name, optimizer=None):
