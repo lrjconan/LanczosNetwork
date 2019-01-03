@@ -24,19 +24,19 @@ We also provide our own implementation of 9 recent graph neural networks on the 
 
 You should be able to reproduce the following results of weighted mean absolute error (MAE x 1.0e-3):
 
-| Methods       | Validation MAE |    Test MAE   |
-| ------------- |:--------------:| -------------:|
-| GCN-FP        | 15.06 +- 0.04  | 14.80 +- 0.09 |
-| GGNN          | 12.94 +- 0.05  | 12.67 +- 0.22 |
-| DCNN          | 10.14 +- 0.05  |  9.97 +- 0.09 |
-| ChebyNet      | 10.24 +- 0.06  | 10.07 +- 0.09 |
-| GCN           | 11.68 +- 0.09  | 11.41 +- 0.10 |
-| MPNN          | 11.16 +- 0.13  | 11.08 +- 0.11 |
-| GraphSAGE     | 13.19 +- 0.04  | 12.95 +- 0.11 |
-| GPNN          | 12.81 +- 0.80  | 12.39 +- 0.77 |
-| GAT           | 11.39 +- 0.09  | 11.02 +- 0.06 |
-| LanczosNet    |  **9.65** +- 0.19  |  **9.58** +- 0.14 |
-| AdaLanczosNet | 10.10 +- 0.22  |  9.97 +- 0.20 |
+| Methods       |  Validation MAE  |     Test MAE     |
+| ------------- |:----------------:|:----------------:|
+| GCN-FP        |  15.06 +- 0.04   |  14.80 +- 0.09   |
+| GGNN          |  12.94 +- 0.05   |  12.67 +- 0.22   |
+| DCNN          |  10.14 +- 0.05   |   9.97 +- 0.09   |
+| ChebyNet      |  10.24 +- 0.06   |  10.07 +- 0.09   |
+| GCN           |  11.68 +- 0.09   |  11.41 +- 0.10   |
+| MPNN          |  11.16 +- 0.13   |  11.08 +- 0.11   |
+| GraphSAGE     |  13.19 +- 0.04   |  12.95 +- 0.11   |
+| GPNN          |  12.81 +- 0.80   |  12.39 +- 0.77   |
+| GAT           |  11.39 +- 0.09   |  11.02 +- 0.06   |
+| LanczosNet    | **9.65** +- 0.19 | **9.58** +- 0.14 |
+| AdaLanczosNet |  10.10 +- 0.22   |   9.97 +- 0.20   |
 
 **Note**:
 
