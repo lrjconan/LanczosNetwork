@@ -2,7 +2,7 @@ import os
 import torch
 from subprocess import call
 
-if torch.__version__ == '1.0.0':
+if torch.__version__[0] == '1':
   from setuptools import setup
   from torch.utils.cpp_extension import BuildExtension, CUDAExtension
 
