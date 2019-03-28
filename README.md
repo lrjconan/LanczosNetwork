@@ -1,5 +1,5 @@
 # Lanczos Network
-This is the PyTorch implementation of [Lanczos Network](https://openreview.net/pdf?id=BkedznAqKQ) as described in the following paper:
+This is the PyTorch implementation of [Lanczos Network](https://arxiv.org/abs/1901.01484) as described in the following ICLR 2019 paper:
 
 ```
 @inproceedings{liao2018lanczos,
