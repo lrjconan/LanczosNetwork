@@ -18,10 +18,10 @@ from utils.logger import get_logger
 from utils.train_helper import data_to_gpu, snapshot, load_model, EarlyStopper
 
 logger = get_logger('exp_logger')
-__all__ = ['QM8Runner']
+__all__ = ['GraphRunner']
 
 
-class QM8Runner(object):
+class GraphRunner(object):
 
   def __init__(self, config):
     self.config = config
@@ -32,8 +32,6 @@ class QM8Runner(object):
     self.use_gpu = config.use_gpu
     self.gpus = config.gpus
     self.writer = SummaryWriter(config.save_dir)
-    self.meta_data = pickle.load(open(self.dataset_conf.meta_data_path, 'rb'))
-    self.const_factor = self.meta_data['std'].reshape(1, -1)
 
   def train(self):
     # create data loader
@@ -104,7 +102,7 @@ class QM8Runner(object):
             data['node_feat'], data['node_mask'], data['label'] = data_to_gpu(
                 data['node_feat'], data['node_mask'], data['label'])
 
-            if self.model_conf.name == 'LanczosNet':
+            if self.model_conf.name == 'LanczosNetGeneral':
               data['L'], data['D'], data['V'] = data_to_gpu(
                   data['L'], data['D'], data['V'])
             elif self.model_conf.name == 'GraphSAGE':
@@ -123,7 +121,7 @@ class QM8Runner(object):
                   data['L'],
                   label=data['label'],
                   mask=data['node_mask'])
-            elif self.model_conf.name == 'LanczosNet':
+            elif self.model_conf.name == 'LanczosNetGeneral':
               pred, _ = model(
                   data['node_feat'],
                   data['L'],
@@ -153,12 +151,11 @@ class QM8Runner(object):
                   label=data['label'],
                   mask=data['node_mask'])
 
-          curr_loss = (
-              pred - data['label']).abs().cpu().numpy() * self.const_factor
+          curr_loss = (pred - data['label']).pow(2).cpu().numpy()
           val_loss += [curr_loss]
 
         val_loss = float(np.mean(np.concatenate(val_loss)))
-        logger.info("Avg. Validation MAE = {}".format(val_loss))
+        logger.info("Avg. Validation MSE = {}".format(val_loss))
         self.writer.add_scalar('val_loss', val_loss, iter_count)
         results['val_loss'] += [val_loss]
 
@@ -172,7 +169,7 @@ class QM8Runner(object):
               epoch + 1,
               tag='best')
 
-        logger.info("Current Best Validation MAE = {}".format(best_val_loss))
+        logger.info("Current Best Validation MSE = {}".format(best_val_loss))
 
         # check early stop
         if early_stop.tick([val_loss]):
@@ -195,7 +192,7 @@ class QM8Runner(object):
           data['node_feat'], data['node_mask'], data['label'] = data_to_gpu(
               data['node_feat'], data['node_mask'], data['label'])
 
-          if self.model_conf.name == 'LanczosNet':
+          if self.model_conf.name == 'LanczosNetGeneral':
             data['L'], data['D'], data['V'] = data_to_gpu(
                 data['L'], data['D'], data['V'])
           elif self.model_conf.name == 'GraphSAGE':
@@ -213,7 +210,7 @@ class QM8Runner(object):
               data['L'],
               label=data['label'],
               mask=data['node_mask'])
-        elif self.model_conf.name == 'LanczosNet':
+        elif self.model_conf.name == 'LanczosNetGeneral':
           _, train_loss = model(
               data['node_feat'],
               data['L'],
@@ -268,7 +265,7 @@ class QM8Runner(object):
     pickle.dump(results,
                 open(os.path.join(self.config.save_dir, 'train_stats.p'), 'wb'))
     self.writer.close()
-    logger.info("Best Validation MAE = {}".format(best_val_loss))
+    logger.info("Best Validation MSE = {}".format(best_val_loss))
 
     return best_val_loss
 
@@ -298,7 +295,7 @@ class QM8Runner(object):
         data['node_feat'], data['node_mask'], data['label'] = data_to_gpu(
             data['node_feat'], data['node_mask'], data['label'])
 
-        if self.model_conf.name == 'LanczosNet':
+        if self.model_conf.name == 'LanczosNetGeneral':
           data['D'], data['V'] = data_to_gpu(data['D'], data['V'])
         elif self.model_conf.name == 'GraphSAGE':
           data['nn_idx'], data['nonempty_mask'] = data_to_gpu(
@@ -316,7 +313,7 @@ class QM8Runner(object):
               data['L'],
               label=data['label'],
               mask=data['node_mask'])
-        elif self.model_conf.name == 'LanczosNet':
+        elif self.model_conf.name == 'LanczosNetGeneral':
           pred, _ = model(
               data['node_feat'],
               data['L'],
@@ -347,10 +344,10 @@ class QM8Runner(object):
               mask=data['node_mask'])
 
         curr_loss = (
-            pred - data['label']).abs().cpu().numpy() * self.const_factor
+            pred - data['label']).pow(2).cpu().numpy() * self.const_factor
         test_loss += [curr_loss]
 
     test_loss = float(np.mean(np.concatenate(test_loss)))
-    logger.info("Test MAE = {}".format(test_loss))
+    logger.info("Test MSE = {}".format(test_loss))
 
     return test_loss

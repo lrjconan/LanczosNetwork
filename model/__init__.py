@@ -10,3 +10,4 @@ from model.graph_sage import *
 from model.cheby_net import *
 from model.lanczos_net import *
 from model.ada_lanczos_net import *
+from model.lanczos_net_general import *

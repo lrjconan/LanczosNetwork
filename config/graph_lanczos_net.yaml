@@ -1,0 +1,46 @@
+---
+exp_name: graph_lanczos_net
+exp_dir: exp/graph_lanczos_net
+runner: GraphRunner
+use_gpu: true
+gpus: [0]
+seed: 1234
+dataset:
+  loader_name: GraphData
+  name: synthetic
+  data_path: data/synthetic  
+  node_emb_dim: 10
+  graph_emb_dim: 2
+  num_edge_type: 1
+model:
+  name: LanczosNetGeneral
+  short_diffusion_dist: []
+  long_diffusion_dist: [1, 2, 3, 5, 7, 10, 20, 30]
+  num_eig_vec: 20
+  spectral_filter_kind: MLP  
+  input_dim: 10
+  hidden_dim: [128, 128, 128, 128, 128, 128, 128]
+  output_dim: 2
+  num_layer: 7
+  loss: MSE
+  output_func: MLP
+train:
+  optimizer: Adam
+  lr_decay: 0.1
+  lr_decay_steps: [10000]
+  num_workers: 0
+  max_epoch: 200
+  batch_size: 10
+  display_iter: 10
+  snapshot_epoch: 10000
+  valid_epoch: 100
+  lr: 1.0e-4
+  wd: 0.0e-4
+  momentum: 0.9
+  shuffle: true
+  is_resume: false
+  resume_model: None
+test:  
+  batch_size: 64
+  num_workers: 0
+  test_model: 

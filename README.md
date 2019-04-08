@@ -2,7 +2,7 @@
 This is the PyTorch implementation of [Lanczos Network](https://arxiv.org/abs/1901.01484) as described in the following ICLR 2019 paper:
 
 ```
-@inproceedings{liao2018lanczos,
+@inproceedings{liao2019lanczos,
   title={LanczosNet: Multi-Scale Deep Graph Convolutional Networks},
   author={Liao, Renjie and Zhao, Zhizhen and Urtasun, Raquel and Zemel, Richard},
   booktitle={ICLR},
@@ -82,6 +82,27 @@ Python 3, PyTorch(1.0), numpy, scipy, sklearn
 * To run the test of experiments ```X```:
 
   ```python run_exp.py -c config/X.yaml -t```
+
+
+## Run on General Graph Datasets
+
+I provide an example code for a synthetic graph regression problem, i.e., given multiple graphs, each of which is accompanied with node embeddings, it is required to predict a real-valued graph embedding vector per graph. 
+
+* To generate the synthetic dataset:
+
+  ```cd dataset```
+
+  ```PYTHONPATH=../ python get_graph_data.py```
+
+* To run the training:
+
+  ```python run_exp.py -c config/graph_lanczos_net.yaml```
+  
+
+**Note**:
+* Please read ```dataset/get_graph_data.py``` for more information on how to adapt it to your own graph datasets. 
+* I only add support to LanczosNet by slightly modifying the learnable node embedding to the input node embedding in ```model/lanczos_net_general.py```. It should be straightforward for you to add support to other models if you are interested.
+
 
 
 ## Cite
