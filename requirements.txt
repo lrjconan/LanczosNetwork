@@ -1,0 +1,8 @@
+networkx==2.3
+numpy
+scipy 
+sklearn
+tqdm
+tensorboardX
+pyyaml
+easydict
