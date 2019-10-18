@@ -10,6 +10,12 @@ This is the PyTorch implementation of [Lanczos Network](https://arxiv.org/abs/19
 }
 ```
 
+## Visualization
+
+![](http://www.cs.toronto.edu/~rjliao/imgs/lanczos_net_model.png)
+
+## Benchmark
+
 We also provide our own implementation of 9 recent graph neural networks on the [QM8](https://arxiv.org/pdf/1504.01966.pdf) benchmark: 
 
 * [graph convolution networks for fingerprint](https://papers.nips.cc/paper/5954-convolutional-networks-on-graphs-for-learning-molecular-fingerprints.pdf) (GCN-FP)
@@ -57,7 +63,11 @@ Therefore, we suggest using our preprocessed data for a fair comparison.
 
 
 ## Dependencies
-Python 3, PyTorch(1.0), numpy, scipy, sklearn
+Python 3, PyTorch(1.0)
+
+Other dependencies can be installed via 
+
+  ```pip install -r requirements.txt```
 
 
 ## Run Demos
